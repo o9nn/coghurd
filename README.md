@@ -81,6 +81,10 @@ Transform GNU Hurd from a traditional microkernel OS into a **cognitive AGI oper
 ### Cognitive Architecture (OpenCog AGI)
 - **OpenCog**: Artificial General Intelligence framework - **THE CORE** of HurdCog
 - **AtomSpace**: Hypergraph knowledge base storing all system state, patterns, and policies
+- **Multi-Tenant AtomSpace Fabric**: Isolated cognitive environments with resource quotas ✅ **NEW**
+- **MIG-Space**: Distributed cognitive architecture via Mach Interface Generator ✅ **NEW**
+- **Agent-Zero Workbench**: Multi-agent autonomous orchestration platform ✅ **NEW**
+- **Mach-Zero Constellations**: Modular agentic microkernel deployment ✅ **NEW**
 - **PLN**: Probabilistic Logic Networks for reasoning under uncertainty
 - **ECAN**: Economic Attention Network for resource allocation
 - **Pattern Mining**: Learns patterns from system operation
@@ -167,9 +171,9 @@ Transform GNU Hurd from a traditional microkernel OS into a **cognitive AGI oper
 
 **🎯 PROJECT STATUS: PRODUCTION READY - FULLY TESTED & DOCUMENTED**
 
-## OpenCog as the Cognitive Core
+## OpenCog as Multi-Tenant Neuro-Symbolic Cognitive Core
 
-HurdCog implements **OpenCog as the central nervous system** of the operating system. Every system operation is mediated through cognitive services:
+HurdCog implements **OpenCog as a multi-tenant neuro-symbolic atomspace fabric** - a distributed cognitive architecture that provides isolated cognitive environments for multiple tenants with autonomous agent orchestration. Every system operation is mediated through cognitive services:
 
 ### How It Works
 
@@ -311,6 +315,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ### OpenCog AGI-OS Documentation (★ START HERE ★)
 - **AGI-OS Overview**: [docs/AGI_OS_OVERVIEW.md](docs/AGI_OS_OVERVIEW.md) - **What is a cognitive AGI-OS?**
 - **OpenCog Integration**: [docs/OPENCOG_HURD_INTEGRATION.md](docs/OPENCOG_HURD_INTEGRATION.md) - **Technical architecture**
+- **Multi-Tenant Architecture**: [cogkernel/MULTI_TENANT_ARCHITECTURE.md](cogkernel/MULTI_TENANT_ARCHITECTURE.md) - **Multi-tenant neuro-symbolic fabric** ✅ **NEW**
 - **Cognitive Services API**: [docs/COGNITIVE_SERVICES_API.md](docs/COGNITIVE_SERVICES_API.md) - **Developer guide**
 - **Examples**: [cogkernel/examples/](cogkernel/examples/) - **Working code examples**
 

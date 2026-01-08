@@ -18,6 +18,9 @@ hurdcog/
 │   ├── machspace.scm    # Distributed hypergraph for Mach
 │   ├── aten-tensors.scm # ATen tensor operations
 │   ├── atenspace.scm    # ATenSpace neural-symbolic bridge
+│   ├── multi-tenant-atomspace.scm  # Multi-tenant fabric ✅ NEW
+│   ├── mig-space.scm    # MIG-space distributed architecture ✅ NEW
+│   ├── agent-zero-workbench.scm    # Agent-zero orchestration ✅ NEW
 │   ├── tests/           # Test suite
 │   └── examples/        # Example implementations
 ├── tensorfs/            # Tensor-Enhanced FileSystem
@@ -95,6 +98,10 @@ cd cogkernel
 | GNU Hurd | Microkernel OS foundation |
 | GNU Mach | Core microkernel |
 | OpenCog AtomSpace | Hypergraph knowledge base |
+| Multi-Tenant AtomSpace | Isolated cognitive environments ✅ NEW |
+| MIG-Space | Distributed cognitive IPC ✅ NEW |
+| Agent-Zero | Multi-agent orchestration ✅ NEW |
+| Mach-Zero Constellations | Modular microkernel deployment ✅ NEW |
 | ECAN | Economic Attention Network for resources |
 | PLN | Probabilistic Logic Networks for reasoning |
 | GNU Guile | Scheme implementation for cognitive code |
@@ -165,6 +172,9 @@ Hardware
 | `cogkernel/atomspace.scm` | Core hypergraph data structure |
 | `cogkernel/aten-tensors.scm` | ATen tensor operations |
 | `cogkernel/atenspace.scm` | Neural-symbolic bridge |
+| `cogkernel/multi-tenant-atomspace.scm` | Multi-tenant fabric ✅ NEW |
+| `cogkernel/mig-space.scm` | MIG-space distributed architecture ✅ NEW |
+| `cogkernel/agent-zero-workbench.scm` | Agent-zero orchestration ✅ NEW |
 | `cogkernel/hurd-atomspace-bridge.c` | C bridge to Hurd |
 | `tensorfs/tensorfs.scm` | TensorFS Scheme implementation |
 | `tensorfs/tensorfs.c` | TensorFS C implementation |
@@ -180,6 +190,9 @@ Hardware
 - `docs/OPENCOG_HURD_INTEGRATION.md` - Technical architecture
 - `docs/COGNITIVE_SERVICES_API.md` - Developer API guide
 - `cogkernel/README.md` - Cognitive kernel details
+- `cogkernel/MULTI_TENANT_ARCHITECTURE.md` - Multi-tenant neuro-symbolic fabric ✅ NEW
+- `MULTI_TENANT_QUICKSTART.md` - Quick start guide ✅ NEW
+- `MULTI_TENANT_IMPLEMENTATION_SUMMARY.md` - Implementation summary ✅ NEW
 - `tensorfs/README.md` - TensorFS documentation
 - `DEVELOPMENT_ROADMAP.md` - Project roadmap
 
