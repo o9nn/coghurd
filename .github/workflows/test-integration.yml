@@ -1,0 +1,58 @@
+name: Test Integration Scripts
+
+on:
+  push:
+    branches: [ "main", "copilot/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test-scripts:
+    runs-on: ubuntu-latest
+    name: Test Integration Scripts
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Test documentation update script
+        run: |
+          python scripts/update_docs.py
+
+      - name: Test checklist generation script
+        run: |
+          python scripts/generate_checklists.py
+
+      - name: Test cognitive flowchart components
+        run: |
+          python scripts/test_cognitive_flowchart.py 4,5
+          python scripts/create_cognitive_issues.py 4
+          python scripts/validate_workflow.py
+
+      - name: Verify script permissions
+        run: |
+          ls -la scripts/
+          test -x scripts/discover_repos.py
+          test -x scripts/generate_checklists.py  
+          test -x scripts/update_docs.py
+          test -x scripts/test_cognitive_flowchart.py
+          test -x scripts/create_cognitive_issues.py
+          test -x scripts/validate_workflow.py
+
+      - name: Check generated documentation
+        run: |
+          test -f docs/integration/README.md
+          echo "Generated documentation files:"
+          find docs/ -type f -name "*.md" | sort

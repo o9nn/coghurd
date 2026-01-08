@@ -1,0 +1,34 @@
+name: Clone GNU Hurd Repos
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clone-gnu-hurd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Ensure git is installed
+      run: sudo apt-get update && sudo apt-get install -y git
+
+    - name: Run clone-repos
+      run: |
+        cd external
+        git clone --progress https://git.savannah.gnu.org/git/hurd.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/glibc.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/gnumach.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/hurd.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/incubator.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/libpthread.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/mig.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/procfs.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/unionfs.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/viengoos.git
+        git clone --progress https://git.savannah.gnu.org/git/hurd/web.git
+
+

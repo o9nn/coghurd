@@ -1,0 +1,47 @@
+*~
+
+*.d
+*.o
+*.a
+*.so
+*.so.*
+TAGS
+
+autom4te.cache/
+/config.log
+/config.make
+/config.status
+/configure
+/version.h
+/doc/hurd.aux
+/doc/hurd.cp
+/doc/hurd.cps
+/doc/hurd.fn
+/doc/hurd.ky
+/doc/hurd.log
+/doc/hurd.pdf
+/doc/hurd.pg
+/doc/hurd.sc
+/doc/hurd.toc
+/doc/hurd.tp
+/doc/hurd.vr
+
+#<<<<<<< clone-me
+# Exclude cloned repositories' .git directories to maintain monorepo structure  
+/external/gnu-repos/
+/external/hurd-repos/
+/external/**/.git/
+/external/CLONE_STATUS.txt
+
+#=======
+# External repositories - include structure but exclude git repos
+#external/*/.*
+#external/*/.git/
+#external/*/build/
+#external/*/dist/
+#external/**/node_modules/
+#external/**/*.o
+#external/**/*.a
+#external/**/*.so
+#>>>>>>> master
+__pycache__/

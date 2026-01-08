@@ -1,0 +1,51 @@
+name: Generate Open Issues from Documentation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not create actual issues)'
+        required: false
+        default: 'false'
+        type: boolean
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  parse-and-generate-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .github/scripts/requirements.txt
+        
+    - name: Generate Issues from Open Issues Documentation
+      run: |
+        python .github/scripts/generate_issues.py
+        
+    - name: Create Development Roadmap
+      run: |
+        python .github/scripts/create_roadmap.py
+        
+    - name: Commit and push changes
+      if: github.event.inputs.dry_run != 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update open issues and development roadmap" || exit 0
+        git push

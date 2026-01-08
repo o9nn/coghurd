@@ -1,0 +1,272 @@
+name: Auto-Resolve Merge Conflicts
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Target branch to merge into clone-me (default: master)'
+        required: false
+        default: 'master'
+        type: string
+      create_pr:
+        description: 'Create PR after successful merge'
+        required: false
+        default: 'true'
+        type: boolean
+      dry_run:
+        description: 'Dry run (do not push changes or create issues)'
+        required: false
+        default: 'false'
+        type: boolean
+  schedule:
+    # Run weekly on Mondays at 10 AM UTC (after the open issues workflow)
+    - cron: '0 10 * * 1'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-resolve-conflicts:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for merge operations
+        
+    - name: Set up Git configuration
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Auto-Merge"
+        
+    - name: Set up Python for issue creation
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r .github/scripts/requirements.txt
+        
+    - name: Validate environment
+      run: |
+        echo "Target branch: ${{ github.event.inputs.target_branch || 'master' }}"
+        echo "Create PR: ${{ github.event.inputs.create_pr || 'true' }}"
+        echo "Dry run: ${{ github.event.inputs.dry_run || 'false' }}"
+        
+        # Verify branches exist
+        git branch -r
+        
+        # Check if resolve script exists
+        if [ ! -f "./resolve-clone-me-conflicts.sh" ]; then
+          echo "ERROR: resolve-clone-me-conflicts.sh not found"
+          exit 1
+        fi
+        chmod +x ./resolve-clone-me-conflicts.sh
+        
+    - name: Attempt automatic merge resolution
+      id: merge_attempt
+      env:
+        TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'master' }}
+        DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      run: |
+        set +e  # Don't exit on error, we want to handle merge failures
+        
+        echo "Starting merge attempt: ${TARGET_BRANCH} -> clone-me"
+        
+        # Switch to clone-me branch
+        git checkout clone-me || {
+          echo "ERROR: Failed to checkout clone-me branch"
+          echo "merge_status=failed" >> $GITHUB_OUTPUT
+          echo "error_type=checkout_failed" >> $GITHUB_OUTPUT
+          exit 1
+        }
+        
+        # Attempt the merge
+        echo "Attempting merge of ${TARGET_BRANCH} into clone-me..."
+        git merge origin/${TARGET_BRANCH} --allow-unrelated-histories --no-commit 2>&1 | tee merge_output.log
+        merge_exit_code=$?
+        
+        if [ $merge_exit_code -eq 0 ]; then
+          echo "Clean merge successful!"
+          echo "merge_status=clean_success" >> $GITHUB_OUTPUT
+          
+          if [ "$DRY_RUN" != "true" ]; then
+            git commit -m "Auto-merge ${TARGET_BRANCH} into clone-me [automated]"
+          else
+            echo "DRY RUN: Would commit clean merge"
+            git merge --abort
+          fi
+          
+          exit 0
+        fi
+        
+        # Check if there are conflicts
+        if git ls-files -u >/dev/null 2>&1; then
+          echo "Merge conflicts detected, attempting automatic resolution..."
+          
+          # Run the conflict resolution script
+          echo "Running automatic conflict resolution..."
+          ./resolve-clone-me-conflicts.sh 2>&1 | tee resolve_output.log
+          resolve_exit_code=$?
+          
+          if [ $resolve_exit_code -eq 0 ]; then
+            echo "Automatic conflict resolution successful!"
+            echo "merge_status=auto_resolved" >> $GITHUB_OUTPUT
+            
+            if [ "$DRY_RUN" != "true" ]; then
+              git commit -m "Auto-merge ${TARGET_BRANCH} into clone-me - conflicts resolved [automated]
+              
+              Automatically resolved merge conflicts using resolve-clone-me-conflicts.sh
+              
+              - Preserved automation enhancements from clone-me branch
+              - Merged documentation and configuration from both branches
+              - Applied intelligent conflict resolution strategies"
+            else
+              echo "DRY RUN: Would commit resolved merge"
+              git reset --hard HEAD
+              git merge --abort 2>/dev/null || true
+            fi
+          else
+            echo "Automatic conflict resolution failed"
+            echo "merge_status=auto_failed" >> $GITHUB_OUTPUT
+            echo "error_type=resolution_failed" >> $GITHUB_OUTPUT
+            
+            # Collect conflict information for issue creation
+            git diff --name-only --diff-filter=U > conflicted_files.txt || true
+            git status --porcelain > git_status.txt || true
+            
+            # Abort the merge for cleanup
+            git merge --abort 2>/dev/null || true
+          fi
+        else
+          echo "Unexpected merge failure without conflicts"
+          echo "merge_status=unexpected_failure" >> $GITHUB_OUTPUT
+          echo "error_type=unexpected" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Push successful merge
+      if: steps.merge_attempt.outputs.merge_status == 'clean_success' || steps.merge_attempt.outputs.merge_status == 'auto_resolved'
+      env:
+        DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      run: |
+        if [ "$DRY_RUN" != "true" ]; then
+          echo "Pushing merged changes to clone-me branch..."
+          git push origin clone-me
+          echo "Push successful!"
+        else
+          echo "DRY RUN: Would push merged changes"
+        fi
+        
+    - name: Create Pull Request
+      if: (steps.merge_attempt.outputs.merge_status == 'clean_success' || steps.merge_attempt.outputs.merge_status == 'auto_resolved') && github.event.inputs.create_pr == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'master' }}
+      run: |
+        if [ "$DRY_RUN" != "true" ]; then
+          echo "Creating pull request..."
+          
+          # Check if PR already exists
+          existing_pr=$(gh pr list --base ${TARGET_BRANCH} --head clone-me --json number --jq '.[0].number' 2>/dev/null || echo "")
+          
+          if [ -n "$existing_pr" ]; then
+            echo "Pull request already exists: #${existing_pr}"
+            echo "Updating existing PR..."
+            gh pr edit ${existing_pr} --body "Auto-merged clone-me branch with ${TARGET_BRANCH}
+            
+            This PR was automatically created after successfully merging ${TARGET_BRANCH} into clone-me.
+            
+            **Merge Status:** ${{ steps.merge_attempt.outputs.merge_status }}
+            **Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+            
+            Please review the changes before merging into ${TARGET_BRANCH}."
+          else
+            echo "Creating new pull request..."
+            gh pr create \
+              --title "Auto-merge: clone-me ← ${TARGET_BRANCH}" \
+              --body "Auto-merged clone-me branch with ${TARGET_BRANCH}
+              
+              This PR was automatically created after successfully merging ${TARGET_BRANCH} into clone-me.
+              
+              **Merge Status:** ${{ steps.merge_attempt.outputs.merge_status }}
+              **Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+              
+              ## Changes Include:
+              - Updated automation scripts and workflows
+              - Enhanced repository cloning capabilities  
+              - Merged documentation and configuration
+              
+              Please review the changes before merging into ${TARGET_BRANCH}." \
+              --base ${TARGET_BRANCH} \
+              --head clone-me
+          fi
+        else
+          echo "DRY RUN: Would create/update pull request"
+        fi
+        
+    - name: Create Issue for Failed Merge
+      if: steps.merge_attempt.outputs.merge_status == 'auto_failed' || steps.merge_attempt.outputs.merge_status == 'unexpected_failure'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'master' }}
+        ERROR_TYPE: ${{ steps.merge_attempt.outputs.error_type }}
+        DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      run: |
+        if [ "$DRY_RUN" != "true" ]; then
+          echo "Creating issue for failed merge..."
+          cd .github/scripts
+          python create_merge_conflict_issue.py \
+            --target-branch "${TARGET_BRANCH}" \
+            --error-type "${ERROR_TYPE}" \
+            --merge-output "../../merge_output.log" \
+            --resolve-output "../../resolve_output.log" \
+            --conflicted-files "../../conflicted_files.txt" \
+            --git-status "../../git_status.txt"
+        else
+          echo "DRY RUN: Would create issue for failed merge"
+        fi
+        
+    - name: Upload artifacts on failure
+      if: failure() || steps.merge_attempt.outputs.merge_status == 'auto_failed'
+      uses: actions/upload-artifact@v4
+      with:
+        name: merge-failure-logs
+        path: |
+          merge_output.log
+          resolve_output.log
+          conflicted_files.txt
+          git_status.txt
+        retention-days: 30
+        
+    - name: Summary
+      if: always()
+      run: |
+        echo "## Merge Conflict Resolution Summary"
+        echo "**Status:** ${{ steps.merge_attempt.outputs.merge_status || 'unknown' }}"
+        echo "**Target Branch:** ${{ github.event.inputs.target_branch || 'master' }}"
+        echo "**Dry Run:** ${{ github.event.inputs.dry_run || 'false' }}"
+        echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        
+        case "${{ steps.merge_attempt.outputs.merge_status }}" in
+          "clean_success")
+            echo "✅ Clean merge completed successfully"
+            ;;
+          "auto_resolved")
+            echo "✅ Conflicts automatically resolved and merged"
+            ;;
+          "auto_failed")
+            echo "❌ Automatic conflict resolution failed - issue created"
+            ;;
+          "unexpected_failure")
+            echo "❌ Unexpected merge failure - issue created"
+            ;;
+          *)
+            echo "❓ Unknown status"
+            ;;
+        esac

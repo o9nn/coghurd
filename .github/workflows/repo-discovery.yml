@@ -1,0 +1,87 @@
+name: Repository Discovery and Integration
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  discover-repos:
+    runs-on: ubuntu-latest
+    name: Discover and Catalog Repositories
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install requests PyGithub
+
+      - name: Discover OpenCog repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/discover_repos.py opencog
+
+      - name: Discover ElizaOS repositories  
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/discover_repos.py elizaOS
+
+      - name: Generate feature checklists
+        run: |
+          python scripts/generate_checklists.py
+
+      - name: Update documentation
+        run: |
+          python scripts/update_docs.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-update: Repository discovery and feature checklists [$(date +'%Y-%m-%d')]"
+          git push
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto-update: Repository discovery and feature checklists"
+          title: "🤖 Auto-update: Repository Discovery and Integration"
+          body: |
+            This automated pull request contains updates to repository catalogs and feature checklists.
+            
+            ## Changes
+            - Updated OpenCog repository catalog
+            - Updated ElizaOS repository catalog  
+            - Generated/updated feature checklists
+            - Updated integration documentation
+            
+            Generated on: $(date +'%Y-%m-%d %H:%M:%S UTC')
+          branch: auto-update/repo-discovery
+          delete-branch: true
